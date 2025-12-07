@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can read any profile, but only write to their own.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Authenticated users can read and create rooms.
+    // Only the room owner can update or delete it.
+    match /rooms/{roomId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if request.auth.uid == resource.data.owner.id;
+    }
+
+    // A user can only access their own notifications.
+    // Any authenticated user can create a notification for another user.
+    match /notifications/{notificationId} {
+      allow read, update: if request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null;
+    }
+
+    // Allow users to send join requests
+    match /joinRequests/{requestId} {
+      // Users can create a join request for a room if logged in
+      allow create: if request.auth != null;
+
+      // The room owner can update (accept/reject) requests
+      allow update: if request.auth.uid == resource.data.roomOwnerId;
+
+      // A user can read only their own join requests or the room owner
+      allow read: if request.auth.uid == resource.data.user.id ||
+                  request.auth.uid == resource.data.roomOwnerId;
+    }
+
+    // Voice chat rooms
+    match /voiceRooms/{roomId} {
+      // Allow read access to all authenticated users (to see who is in the room)
+      allow read: if request.auth != null;
+      
+      // Participants collection
+      match /participants/{userId} {
+        // Users can only create/update/delete their own participant document
+        allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null;
+        
+        // Subcollections for WebRTC signaling
+        // These are written by OTHER users (senders) to THIS user (recipient/userId)
+        
+        match /offers/{offerId} {
+          allow create: if request.auth != null;
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow delete: if request.auth != null && request.auth.uid == userId;
+        }
+        
+        match /answers/{answerId} {
+          allow create: if request.auth != null;
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow delete: if request.auth != null && request.auth.uid == userId;
+        }
+        
+        match /candidates/{candidateId} {
+          allow create: if request.auth != null;
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow delete: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+    }
+  }
+}

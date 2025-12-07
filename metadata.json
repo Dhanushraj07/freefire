@@ -1,0 +1,7 @@
+{
+  "name": "SquadMatch",
+  "description": "A modern web and mobile app designed for gamers to find opponents and play online room matches — especially for games like Free Fire. Users can create, browse, and join room matches with secure password sharing.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
